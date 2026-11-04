@@ -61,7 +61,7 @@ curl -fLsS "https://raw.githubusercontent.com/YaPA24/KeenDash/main/uninstall.sh"
 Проект вдохновлён лучшими практиками из:
 - [Netdata](https://github.com/netdata/netdata) (концепция дашборда и графиков)
 - [KeenKit](https://github.com/spatiumstas/KeenKit) (методы получения данных о модели и SoC Keenetic)
-- [AWG-Manager](https://github.com/hoaxisr/awg-manager) (стиль тёмной темы и компактных карточек)
+
 
 ---
 *Сделано с ❤️ для сообщества Keenetic.*
