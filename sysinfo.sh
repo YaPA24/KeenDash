@@ -126,3 +126,16 @@ cat <<JSON > /tmp/data.json.tmp
 }
 JSON
 mv -f /tmp/data.json.tmp /tmp/data.json
+
+# ========== ИСТОРИЯ ГРАФИКОВ: построчный JSON в оперативке ==========
+# Одна строка = одна точка. Никаких jq и перезаписи всего файла:
+# точка просто дописывается в конец (доли миллисекунды при любом размере).
+# Хвост подрезаем до 3600 строк = 3 часа при тике 3 секунды.
+HIST=/tmp/sysinfo-history.json
+[ -f "$HIST" ] || : > "$HIST"
+num() { echo "$1" | tr -dc '0-9'; }
+jn()  { case "$1" in "") echo null ;; *) echo "$1" ;; esac; }
+echo "{\"ts\":$(date +%s),\"cpu\":${CPU_PCT:-null},\"ram\":${MEM_PCT:-0},\"tcpu\":$(jn "$(num "$CPU_C")"),\"t24\":$(jn "$(num "$G24_C")"),\"t5\":$(jn "$(num "$G5_C")")}" >> "$HIST"
+if [ "$(wc -l < "$HIST")" -gt 3600 ]; then
+  tail -n 3600 "$HIST" > "$HIST.tmp" && mv -f "$HIST.tmp" "$HIST"
+fi

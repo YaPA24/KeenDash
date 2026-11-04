@@ -133,17 +133,17 @@ canvas{width:100%;height:280px;display:block;cursor:crosshair}
     <div><div class="label">Модель</div><div class="val" id="i_model">…</div></div>
     <div><div class="label">ОС</div><div class="val" id="i_os">…</div></div>
     <div><div class="label">CPU</div><div class="val" id="i_cpu">…</div></div>
-	<div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
-		<!-- Первая строка: OPKG слева, Слот справа -->
-		<div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-			<span class="label" style="margin: 0;">OPKG</span>
-			<span class="chips" id="i_slotwrap" style="margin: 0;">
-				<span class="chip">Слот <b id="i_slot">-</b></span>
-			</span>
-		</div>
-		<!-- Вторая строка: Значение справа с обнуленными отступами -->
-		<div class="val opkg-val" id="i_opkg" style="text-align: right; margin: 0; padding-top: 4px; line-height: 1.2;">...</div>
-	</div>
+        <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+                <!-- Первая строка: OPKG слева, Слот справа -->
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <span class="label" style="margin: 0;">OPKG</span>
+                        <span class="chips" id="i_slotwrap" style="margin: 0;">
+                                <span class="chip">Слот <b id="i_slot">-</b></span>
+                        </span>
+                </div>
+                <!-- Вторая строка: Значение справа с обнуленными отступами -->
+                <div class="val opkg-val" id="i_opkg" style="text-align: right; margin: 0; padding-top: 4px; line-height: 1.2;">...</div>
+        </div>
     <div><div class="label">Uptime</div><div class="val" id="i_up">…</div></div>
   </div>
 
@@ -183,6 +183,30 @@ let WIN=5, points=[], pushN=0, hoverX=null, serverTime=null, raf=0;
 try{points=JSON.parse(localStorage.getItem(K))||[]}catch(e){points=[]}
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(points))}catch(e){}};
 addEventListener('beforeunload',save);
+
+// История с роутера: один раз при открытии тянем /tmp/sysinfo-history.json
+// (построчный JSON: одна строка = одна точка). Тогда график одинаков
+// на всех устройствах и не зависит от кеша браузера.
+async function loadHist(){
+  try{
+    const r=await fetch('sysinfo-history.json?'+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    const txt=await r.text();
+    const arr=[];
+    for(const ln of txt.split('\n')){
+      if(!ln.trim())continue;
+      try{const o=JSON.parse(ln);
+        arr.push({ts:o.ts*1000,cpu:o.cpu,ram:o.ram,tcpu:o.tcpu,t24:o.t24,t5:o.t5});
+      }catch(e){}
+    }
+    if(arr.length>10){
+      // Часы роутера могут отличаться от часов браузера — сдвигаем на разницу
+      const off=Date.now()-arr[arr.length-1].ts;
+      points=arr.map(p=>({ts:p.ts+off,cpu:p.cpu,ram:p.ram,tcpu:p.tcpu,t24:p.t24,t5:p.t5}));
+      save(); schedule();
+    }
+  }catch(e){}
+}
 
 const fmtDT=d=>p2(d.getDate())+'.'+p2(d.getMonth()+1)+'.'+d.getFullYear()+' '
                    +p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds());
@@ -297,7 +321,7 @@ async function tick(){
     }
   }catch(e){$('dot').classList.add('err');}
 }
-tick(); setInterval(tick,3000); schedule();
+tick(); loadHist(); setInterval(tick,3000); schedule();
 </script>
 </body>
 </html>

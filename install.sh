@@ -50,11 +50,12 @@ chmod +x /opt/etc/ndm/netfilter.d/200-sysinfo-loop.sh
 echo "🧹 Очистка старых процессов..."
 kill $(cat /var/run/sysinfo-loop.pid 2>/dev/null) 2>/dev/null
 pkill -f "sysinfo-loop" 2>/dev/null
-rm -f /var/run/sysinfo-loop.pid /tmp/sysinfo-static.env /tmp/cpu-stat.prev /tmp/data.json
+rm -f /var/run/sysinfo-loop.pid /tmp/sysinfo-static.env /tmp/cpu-stat.prev /tmp/data.json /tmp/sysinfo-history.json
 
 # 6. Создаем СИМЛИНК (ярлык) из веб-папки в оперативную память
 echo "🔗 Создание симлинка в $WEB_ROOT..."
 ln -sf /tmp/data.json "$WEB_ROOT/data.json"
+ln -sf /tmp/sysinfo-history.json "$WEB_ROOT/sysinfo-history.json"
 
 # 7. Запускаем демон
 echo "▶️ Запуск демона..."
