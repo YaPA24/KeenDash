@@ -20,3 +20,17 @@ opkg update && opkg install curl && curl -fLsS "https://raw.githubusercontent.co
 ```
 
 
+# остановить демон
+kill $(cat /var/run/sysinfo-loop.pid) 2>/dev/null
+pkill -f sysinfo-loop 2>/dev/null
+
+# удалить файлы
+rm -f /opt/bin/sysinfo.sh
+rm -f /opt/etc/ndm/netfilter.d/200-sysinfo-loop.sh
+rm -f /opt/share/nginx/html/index.html /opt/share/nginx/html/dash.html
+rm -f /opt/share/nginx/html/favicon.svg /opt/share/nginx/html/data.json
+
+# очистить временные данные
+rm -f /tmp/sysinfo-static.env /tmp/cpu-stat.prev /tmp/data.json /var/run/sysinfo-loop.pid
+
+
