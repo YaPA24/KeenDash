@@ -12,3 +12,11 @@
     
 /tmp/
 └── data.json                   ← РЕАЛЬНЫЙ файл с данными (в RAM)
+
+
+Установить скрипт
+```
+opkg update && opkg install curl && curl -fLsS "https://raw.githubusercontent.com/YaPA24/KeenDash/install.sh" | sh
+```
+
+
