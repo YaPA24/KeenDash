@@ -1,5 +1,5 @@
 # KeenDash 🚀
-new
+
 Легковесный и красивый системный монитор для роутеров на базе KeeneticOS (в стиле Netdata).
 
 ![Preview](https://img.shields.io/badge/Keenetic-Entware-3fb950?style=for-the-badge)
