@@ -1,0 +1,155 @@
+<!--
+============================================================================
+Файл: /opt/share/nginx/html/index.html
+Назначение: компактная карточка системы; унифицирована с dash.html
+============================================================================
+-->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Система · Карточка</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%232ea043' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='14' width='18' height='7' rx='2'/%3E%3Cpath d='M7 17.5h.01M10.5 17.5h.01M17 14V8'/%3E%3Cpath d='M14.5 5.5a3.5 3.5 0 0 1 5 0M12.5 3a6.5 6.5 0 0 1 9 0'/%3E%3C/g%3E%3C/svg%3E">
+<meta name="theme-color" content="#0b0d10">
+<style>
+/* ========== ОБЩИЙ БЛОК: идентичен dash.html ========== */
+:root{
+  --bg:#0b0d10; --card:#14171b; --line:#23282e;
+  --label:#79828c; --value:#e8edf2; --dim:#9aa4ae;
+  --ok:#3fb950; --warn:#e3b341; --crit:#f85149;
+  --mono:"JetBrains Mono","Cascadia Mono",Consolas,"Courier New",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{height:100%}
+body{
+  background:var(--bg);
+  background-image:radial-gradient(1100px 550px at 20% -10%,#12161b 0%,var(--bg) 65%);
+  color:var(--value);font-family:var(--mono);
+  display:flex;align-items:flex-start;justify-content:flex-start;
+  min-height:100%;padding:28px;
+}
+.wrap{width:100%;max-width:1200px;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;gap:12px}
+.logo{width:38px;height:38px;border-radius:10px;background:#1b2026;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;flex:none}
+header h1{font-size:17px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
+nav{display:flex;gap:6px;margin-left:14px}
+nav a{color:var(--dim);font-size:12px;text-decoration:none;border:1px solid var(--line);
+  border-radius:8px;padding:4px 10px}
+nav a:hover{color:var(--value);border-color:var(--dim)}
+nav a.on{color:var(--value);border-color:var(--dim);background:#1a1f25}
+.clock{margin-right:auto;display:flex;align-items:center;gap:9px;color:var(--dim);font-size:14px;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);
+  animation:pulse 2s ease-in-out infinite}
+.dot.err{background:var(--crit);box-shadow:0 0 10px var(--crit);animation:none}
+@keyframes pulse{50%{opacity:.35}}
+.label{color:var(--label);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.val{font-size:15px;text-align:right;line-height:1.5}
+.val .dim{color:var(--dim)}
+.chip{display:inline-block;background:#1a1f25;border:1px solid var(--line);border-radius:9px;
+  padding:3px 9px;font-size:11.5px;color:var(--dim)}
+.chip b{font-weight:600;margin-left:6px;color:var(--value)}
+.chip b.ok{color:var(--ok)} .chip b.warn{color:var(--warn)} .chip b.crit{color:var(--crit)}
+/* ========== СПЕЦИФИКА КАРТОЧКИ ========== */
+.card{width:100%;max-width:465px;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:6px 26px 18px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;
+  padding:14px 0;flex-wrap:wrap}
+.row + .row{border-top:1px solid var(--line)}
+.row .label{padding-top:3px}
+.chips{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:7px}
+.mbar{display:block;width:170px;height:4px;margin:8px 0 0 auto;background:#22272d;
+  border-radius:3px;overflow:hidden}
+.mbar i{display:block;height:100%;width:0;background:var(--ok);border-radius:3px;
+  transition:width .5s,background .5s}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3fb950"
+           stroke-width="2" stroke-linecap="round">
+        <rect x="2" y="14" width="20" height="7" rx="2"/>
+        <path d="M6.5 17.5h.01M10 17.5h.01M17 14V8"/>
+        <path d="M14.5 5.5a3.5 3.5 0 0 1 5 0M12.5 3a6.5 6.5 0 0 1 9 0"/>
+      </svg>
+    </div>
+    <h1>Система</h1>
+    <nav><a href="/index.html" class="on">карточка</a><a href="/dash.html">дашборд</a></nav>
+  </header>
+    <div class="clock"><span class="dot" id="dot"></span><span id="datetime">--.--.---- --:--:--</span></div>
+
+  <div class="card">
+    <div class="row"><span class="label">Модель</span><span class="val" id="model">…</span></div>
+    <div class="row"><span class="label">ОС</span><span class="val" id="os">…</span></div>
+    <div class="row"><span class="label">CPU / Темп.</span>
+      <span class="val">
+        <span id="cpu">…</span>
+        <span class="chips">
+          <span class="chip">Load<b id="cpuload">–</b></span>
+          <span class="chip">2.4G<b id="t24">–</b></span>
+          <span class="chip">5G<b id="t5">–</b></span>
+          <span class="chip">CPU<b id="tcpu">–</b></span>
+        </span>
+      </span>
+    </div>
+    <div class="row"><span class="label">Память</span>
+      <span class="val"><span id="ram">…</span><span class="mbar"><i id="rambar"></i></span></span></div>
+    <div class="row"><span class="label">OPKG</span>
+      <span class="val">
+        <span class="chips"><span class="chip">Слот<b id="slot">–</b></span></span>
+        <span id="opkg">…</span>
+      </span>
+    </div>
+    <div class="row"><span class="label">Uptime</span><span class="val" id="uptime">…</span></div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const p2=n=>String(n).padStart(2,'0');
+const tclass=v=>{const n=parseInt(v,10);return isNaN(n)?'':(n>=80?'crit':n>=65?'warn':'ok')};
+const lclass=v=>{const n=parseInt(v,10);return isNaN(n)?'':(n>=85?'crit':n>=60?'warn':'ok')};
+let serverTime=null;
+const fmtDT=d=>p2(d.getDate())+'.'+p2(d.getMonth()+1)+'.'+d.getFullYear()+' '
+                   +p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds());
+function parseDT(s){
+  const [dd,mm,yy]=s.slice(0,10).split('.').map(Number);
+  const [h,mi,se]=s.slice(11).split(':').map(Number);
+  return new Date(yy,mm-1,dd,h,mi,se);
+}
+setInterval(()=>{if(serverTime){serverTime=new Date(serverTime.getTime()+1000);
+  $('datetime').textContent=fmtDT(serverTime);}},1000);
+
+async function tick(){
+  try{
+    const r=await fetch('data.json?'+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw 0;
+    const d=await r.json();
+    $('dot').classList.remove('err');
+    serverTime=parseDT(d.datetime); $('datetime').textContent=fmtDT(serverTime);
+    $('model').textContent=d.model;
+    $('os').textContent=d.os;
+    $('cpu').textContent=d.cpu;
+    const le=$('cpuload');
+    if(d.cpu_pct===''||d.cpu_pct==null){le.textContent='–';le.className='';}
+    else{le.textContent=d.cpu_pct+'%';le.className=lclass(d.cpu_pct);}
+    for(const [id,val] of [['t24',d.g24_temp],['t5',d.g5_temp],['tcpu',d.cpu_temp]]){
+      const el=$(id);el.textContent=val;el.className=tclass(val);
+    }
+    $('ram').innerHTML=d.ram+' <span class="dim">('+d.ram_pct+'%)</span>';
+    const pct=Math.min(100,parseInt(d.ram_pct,10)||0);
+    const bar=$('rambar');
+    bar.style.width=pct+'%';
+    bar.style.background=pct>=90?'var(--crit)':pct>=75?'var(--warn)':'var(--ok)';
+    $('opkg').textContent=d.opkg;
+    $('slot').textContent=d.slot?d.slot:'–';
+    $('uptime').textContent=d.uptime;
+  }catch(e){$('dot').classList.add('err');}
+}
+tick(); setInterval(tick,3000);
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "datetime": "04.11.2026 18:46:15",
+  "model": "Ultra (NC-1812) (EA)",
+  "os": "5.1.8 (5.01.C.8.0-2)",
+  "slot": "2",
+  "cpu": "MT7988 (aarch64)",
+  "cpu_pct": "5",
+  "cpu_temp": "62°C",
+  "g24_temp": "58°C",
+  "g5_temp": "58°C",
+  "ram": "443 / 991 MB",
+  "ram_pct": 44,
+  "opkg": "173 MB / 3.52 GB",
+  "uptime": "18:39:13"
+}
