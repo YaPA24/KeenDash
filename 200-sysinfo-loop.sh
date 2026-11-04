@@ -15,9 +15,10 @@ fi
 # Очистка кеша при старте для пересчета статики
 rm -f /tmp/sysinfo-static.env /tmp/cpu-stat.prev
 
+# Вывод в никуда, чтобы не мешать ndm держать свой канал
 while true; do
-  /opt/bin/sysinfo.sh
+  /opt/bin/sysinfo.sh >/dev/null 2>&1
   sleep 3
-done &
+done >/dev/null 2>&1 &
 
 echo $! > "$PIDFILE"

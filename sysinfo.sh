@@ -69,15 +69,26 @@ if [ -n "$MEM_T" ] && [ "$MEM_T" -gt 0 ]; then
   RAM_STR="${MEM_USED} / ${MEM_T} MB"
 fi
 
-# --- Температуры ---
-ZONES=""
+# --- Температуры (умная раскладка зон) ---
+# Порядок thermal-зон на разных чипах разный:
+#   3 зоны  -> CPU, 2.4G, 5G            (MT7622, MT7981, MT7986...)
+#   2 зоны  -> обе Wi-Fi: 2.4G, 5G      (MT7620, MT7621 - у них нет датчика CPU)
+#   1 зона  -> единственное радио 2.4G
+CPU_C="N/D"; G24_C="N/D"; G5_C="N/D"
+TZ1=""; TZ2=""; TZ3=""; NZ=0
 for z in 0 1 2; do
-  [ -r "/sys/class/thermal/thermal_zone$z/temp" ] && ZONES="$ZONES /sys/class/thermal/thermal_zone$z/temp"
+  T=$(cat "/sys/class/thermal/thermal_zone$z/temp" 2>/dev/null)
+  case "$T" in ''|*[!0-9]*) continue ;; esac
+  NZ=$((NZ+1))
+  eval "TZ$NZ=$T"
 done
-[ -n "$ZONES" ] && eval $(awk '{ print "T"NR"="$1 }' $ZONES)
-[ -n "$T1" ] && CPU_C="$((T1/1000))°C" || CPU_C="N/D"
-[ -n "$T2" ] && G24_C="$((T2/1000))°C" || G24_C="N/D"
-[ -n "$T3" ] && G5_C="$((T3/1000))°C"  || G5_C="N/D"
+if [ "$NZ" -ge 3 ]; then
+  CPU_C="$((TZ1/1000))°C"; G24_C="$((TZ2/1000))°C"; G5_C="$((TZ3/1000))°C"
+elif [ "$NZ" -eq 2 ]; then
+  G24_C="$((TZ1/1000))°C"; G5_C="$((TZ2/1000))°C"
+elif [ "$NZ" -eq 1 ]; then
+  G24_C="$((TZ1/1000))°C"
+fi
 
 # --- Аптайм ---
 read -r UP_S _ < /proc/uptime

@@ -2,11 +2,15 @@
 # ============================================================================
 # Файл: install.sh
 # Назначение: Автоматическая установка KeenDash с умным определением веб-папки
+# Изменено: добавлены проверки скачивания, чтобы не было "успеха" с пустыми файлами
 # ============================================================================
 
 REPO_URL="https://raw.githubusercontent.com/YaPA24/KeenDash/main"
 
 echo "🚀 Начинаем установку KeenDash..."
+
+# 0. Проверяем, что curl вообще установлен
+command -v curl >/dev/null 2>&1 || { echo "❌ curl не найден. Установи: opkg install curl"; exit 1; }
 
 # 1. Умное определение корневой папки веб-сервера
 WEB_ROOT=""
@@ -17,7 +21,7 @@ elif [ -d "/opt/share/nginx/html" ]; then
     WEB_ROOT="/opt/share/nginx/html"
     echo "✅ Обнаружен Nginx (/opt/share/nginx/html)"
 else
-    mkdir -p /opt/share/www
+    mkdir -p /opt/share/www || { echo "❌ Нет папки /opt — похоже, не установлен Entware"; exit 1; }
     WEB_ROOT="/opt/share/www"
     echo "⚠️ Веб-сервер не найден. Создана стандартная папка /opt/share/www"
 fi
@@ -26,13 +30,17 @@ fi
 mkdir -p /opt/bin
 mkdir -p /opt/etc/ndm/netfilter.d
 
-# 3. Скачиваем основные файлы
+# 3. Скачиваем основные файлы — КАЖДЫЙ с проверкой
 echo "⬇️ Загрузка файлов..."
-curl -fLsS "$REPO_URL/sysinfo.sh" > /opt/bin/sysinfo.sh
-curl -fLsS "$REPO_URL/200-sysinfo-loop.sh" > /opt/etc/ndm/netfilter.d/200-sysinfo-loop.sh
-curl -fLsS "$REPO_URL/index.html" > "$WEB_ROOT/index.html"
-curl -fLsS "$REPO_URL/dash.html" > "$WEB_ROOT/dash.html"
-curl -fLsS "$REPO_URL/favicon.svg" > "$WEB_ROOT/favicon.svg"
+get() {
+  curl -fLsS --max-time 30 "$REPO_URL/$1" -o "$2" || { echo "❌ Не удалось скачать $1"; exit 1; }
+  [ -s "$2" ] || { echo "❌ Файл $1 скачался пустым. Проверь REPO_URL и расположение файлов в репозитории"; exit 1; }
+}
+get sysinfo.sh          /opt/bin/sysinfo.sh
+get 200-sysinfo-loop.sh /opt/etc/ndm/netfilter.d/200-sysinfo-loop.sh
+get index.html          "$WEB_ROOT/index.html"
+get dash.html           "$WEB_ROOT/dash.html"
+get favicon.svg         "$WEB_ROOT/favicon.svg"
 
 # 4. Даем права на исполнение
 chmod +x /opt/bin/sysinfo.sh
