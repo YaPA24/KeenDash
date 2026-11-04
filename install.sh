@@ -1,45 +1,58 @@
 #!/bin/sh
 # ============================================================================
 # Файл: install.sh
-# Назначение: Автоматическая установка системного монитора в стиле KeenKit
+# Назначение: Автоматическая установка KeenDash
 # ============================================================================
-
 
 REPO_URL="https://raw.githubusercontent.com/YaPA24/KeenDash/main"
 
-echo "🚀 Начинаем установку системного монитора..."
+echo "🚀 Начинаем установку KeenDash..."
 
-# 1. Создаем нужные директории (на всякий случай, если их нет)
+# 1. Умное определение корневой папки веб-сервера
+WEB_ROOT=""
+if [ -d "/opt/share/www" ]; then
+    WEB_ROOT="/opt/share/www"
+    echo "✅ Обнаружен Lighttpd / стандартный Entware веб-сервер (/opt/share/www)"
+elif [ -d "/opt/share/nginx/html" ]; then
+    WEB_ROOT="/opt/share/nginx/html"
+    echo "✅ Обнаружен Nginx (/opt/share/nginx/html)"
+else
+    mkdir -p /opt/share/www
+    WEB_ROOT="/opt/share/www"
+    echo "⚠️ Веб-сервер не найден. Создана стандартная папка /opt/share/www"
+fi
+
+# 2. Создаем нужные директории
 mkdir -p /opt/bin
 mkdir -p /opt/etc/ndm/netfilter.d
-mkdir -p /opt/share/nginx/html
 
-# 2. Скачиваем основные файлы с GitHub
+# 3. Скачиваем основные файлы
 echo "⬇️ Загрузка файлов..."
 curl -fLsS "$REPO_URL/sysinfo.sh" > /opt/bin/sysinfo.sh
 curl -fLsS "$REPO_URL/200-sysinfo-loop.sh" > /opt/etc/ndm/netfilter.d/200-sysinfo-loop.sh
-curl -fLsS "$REPO_URL/index.html" > /opt/share/nginx/html/index.html
-curl -fLsS "$REPO_URL/dash.html" > /opt/share/nginx/html/dash.html
-curl -fLsS "$REPO_URL/favicon.svg" > /opt/share/nginx/html/favicon.svg
+curl -fLsS "$REPO_URL/index.html" > "$WEB_ROOT/index.html"
+curl -fLsS "$REPO_URL/dash.html" > "$WEB_ROOT/dash.html"
+curl -fLsS "$REPO_URL/favicon.svg" > "$WEB_ROOT/favicon.svg"
 
-# 3. Даем права на исполнение скриптам
+# 4. Даем права на исполнение
 chmod +x /opt/bin/sysinfo.sh
 chmod +x /opt/etc/ndm/netfilter.d/200-sysinfo-loop.sh
 
-# 4. Очищаем старые версии (если обновляемся или что-то пошло не так)
+# 5. Очищаем старые версии
 echo "🧹 Очистка старых процессов..."
 kill $(cat /var/run/sysinfo-loop.pid 2>/dev/null) 2>/dev/null
 pkill -f "sysinfo-loop" 2>/dev/null
 rm -f /var/run/sysinfo-loop.pid /tmp/sysinfo-static.env /tmp/cpu-stat.prev /tmp/data.json
 
-# 5. Создаем СИМЛИНК (ярлык) из веб-папки в оперативную память
-echo "🔗 Создание симлинка..."
-ln -sf /tmp/data.json /opt/share/nginx/html/data.json
+# 6. Создаем СИМЛИНК (ярлык) из веб-папки в оперативную память
+echo "🔗 Создание симлинка в $WEB_ROOT..."
+ln -sf /tmp/data.json "$WEB_ROOT/data.json"
 
-# 6. Запускаем демон сбора данных
+# 7. Запускаем демон
 echo "▶️ Запуск демона..."
 /opt/etc/ndm/netfilter.d/200-sysinfo-loop.sh
 
 echo ""
 echo "✅ Установка успешно завершена!"
-echo "🌐 Открой в браузере: http://192.168.1.1:7777"
+echo "🌐 Открой в браузере: http://<IP-роутера>/dash.html"
+echo "(Используй порт твоего веб-сервера, если он отличается от 80, например: http://192.168.1.1:81/dash.html)"
