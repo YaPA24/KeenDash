@@ -1,41 +1,44 @@
 #!/bin/sh
 # ============================================================================
-# Файл: /opt/bin/sysinfo.sh
+# Файл: /opt/etc/keendash/sysinfo.sh
 # Назначение: сбор системных данных роутера в JSON (оптимизировано)
+# Все временные файлы проекта — в своей папке /tmp/keendash (оперативка).
 # ============================================================================
 
-STATIC=/tmp/sysinfo-static.env
+mkdir -p /tmp/keendash 2>/dev/null
+
+STATIC=/tmp/keendash/sysinfo-static.env
 if [ ! -f "$STATIC" ]; then
   jget() { echo "$1" | sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p"; }
   VJSON=""
   command -v curl >/dev/null 2>&1 && VJSON=$(curl -s --max-time 2 "http://127.0.0.1:79/rci/show/version" 2>/dev/null)
-  
+
   DEVICE=$(jget "$VJSON" device)
   HW_ID=$(jget "$VJSON" hw_id)
   REGION=$(jget "$VJSON" region)
   FW_TITLE=$(jget "$VJSON" title)
   FW_RELEASE=$(jget "$VJSON" release)
-  
+
   [ -z "$DEVICE" ] && DEVICE=$(tr -d '\0' < /proc/device-tree/model 2>/dev/null)
   [ -z "$DEVICE" ] && DEVICE=$(cat /proc/sys/kernel/hostname 2>/dev/null)
-  
+
   MODEL_STR="$DEVICE"
   [ -n "$HW_ID" ]  && MODEL_STR="$MODEL_STR ($HW_ID)"
   [ -n "$REGION" ] && MODEL_STR="$MODEL_STR ($REGION)"
-  
+
   if [ -n "$FW_TITLE" ] && [ -n "$FW_RELEASE" ] && [ "$FW_TITLE" != "$FW_RELEASE" ]; then
     OS_STR="$FW_TITLE ($FW_RELEASE)"
   elif [ -n "$FW_RELEASE" ]; then OS_STR="$FW_RELEASE"
   elif [ -n "$FW_TITLE" ];  then OS_STR="$FW_TITLE"
   else OS_STR=$(uname -r 2>/dev/null); fi
-  
+
   SLOT=$(cat /proc/dual_image/boot_current 2>/dev/null)
-  
+
   CPU=$(strings /lib/libndmMwsController.so 2>/dev/null | grep -oE 'MT76[0-9A-Za-z]+|MT79[0-9A-Za-z]+|EN75[0-9A-Za-z]+' | head -n 1)
   [ -z "$CPU" ] && CPU=$(tr -d '\0' < /proc/device-tree/compatible 2>/dev/null | grep -oE 'mt[0-9]+' | head -n 1 | tr '[:lower:]' '[:upper:]')
   [ -z "$CPU" ] && CPU="$DEVICE"
   CPU_STR="$CPU ($(uname -m))"
-  
+
   cat <<ENV > "$STATIC"
 MODEL_STR="$MODEL_STR"
 OS_STR="$OS_STR"
@@ -55,12 +58,12 @@ eval $(awk '
 [ -z "$MEM_A" ] && MEM_A=$MEM_F
 
 CPU_PCT=""
-if [ -f /tmp/cpu-stat.prev ]; then
-  read -r OT OI < /tmp/cpu-stat.prev
+if [ -f /tmp/keendash/cpu-stat.prev ]; then
+  read -r OT OI < /tmp/keendash/cpu-stat.prev
   DT=$((STAT_T - OT)); DI=$((STAT_I - OI))
   [ "$DT" -gt 0 ] && CPU_PCT=$(( (DT - DI) * 100 / DT ))
 fi
-echo "$STAT_T $STAT_I" > /tmp/cpu-stat.prev
+echo "$STAT_T $STAT_I" > /tmp/keendash/cpu-stat.prev
 
 MEM_PCT=0; RAM_STR="N/D"
 if [ -n "$MEM_T" ] && [ "$MEM_T" -gt 0 ]; then
@@ -108,7 +111,7 @@ OPKG_STR=$(df -k /opt 2>/dev/null | awk 'NR==2{
 DATETIME=$(date "+%d.%m.%Y %H:%M:%S")
 
 # ========== JSON: атомарная запись в tmpfs (бережём флешку!) ==========
-cat <<JSON > /tmp/data.json.tmp
+cat <<JSON > /tmp/keendash/data.json.tmp
 {
   "datetime": "${DATETIME}",
   "model": "${MODEL_STR}",
@@ -125,13 +128,13 @@ cat <<JSON > /tmp/data.json.tmp
   "uptime": "${UPTIME_STR}"
 }
 JSON
-mv -f /tmp/data.json.tmp /tmp/data.json
+mv -f /tmp/keendash/data.json.tmp /tmp/keendash/data.json
 
 # ========== ИСТОРИЯ ГРАФИКОВ: построчный JSON в оперативке ==========
 # Одна строка = одна точка. Никаких jq и перезаписи всего файла:
 # точка просто дописывается в конец (доли миллисекунды при любом размере).
 # Хвост подрезаем до 3600 строк = 3 часа при тике 3 секунды.
-HIST=/tmp/sysinfo-history.json
+HIST=/tmp/keendash/sysinfo-history.json
 [ -f "$HIST" ] || : > "$HIST"
 num() { echo "$1" | tr -dc '0-9'; }
 jn()  { case "$1" in "") echo null ;; *) echo "$1" ;; esac; }
