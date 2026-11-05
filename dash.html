@@ -208,6 +208,15 @@ async function loadHist(){
   }catch(e){}
 }
 
+// Возврат на вкладку после отсутствия: браузер в фоне замедляет таймеры
+// (точки копятся редко), поэтому перезабираем историю с роутера — график
+// снова становится точным, без F5.
+let hiddenAt=0;
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){hiddenAt=Date.now();}
+  else if(hiddenAt&&Date.now()-hiddenAt>30000){hiddenAt=0;loadHist();}
+});
+
 const fmtDT=d=>p2(d.getDate())+'.'+p2(d.getMonth()+1)+'.'+d.getFullYear()+' '
                    +p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds());
 function parseDT(s){
