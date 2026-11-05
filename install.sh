@@ -34,7 +34,7 @@
 
 REPO_URL="https://raw.githubusercontent.com/YaPA24/KeenDash/main"
 
-echo "🚀 Начинаем установку KeenDash..."
+echo "Начинаем установку KeenDash..."
 
 # 0. Проверяем, что curl вообще установлен
 command -v curl >/dev/null 2>&1 || { echo "❌ curl не найден. Установи: opkg install curl"; exit 1; }
@@ -154,7 +154,7 @@ try_own_lighttpd() {
     fi
   fi
 
-  echo "🚀 Поднимаю собственный веб-сервер KeenDash (выделенный порт 8321)..."
+  echo "Поднимаю собственный веб-сервер KeenDash (выделенный порт 8321)..."
   for P in $KD_PORTS; do
     port_busy "$P" && continue
     write_own_lighttpd_conf "$P"
@@ -168,7 +168,7 @@ try_own_lighttpd() {
     fi
     [ -n "$ERR" ] && echo "   порт $P не подошёл: $ERR"
   done
-  echo "⚠️ Свой lighttpd поднять не получилось (порты 8321–8330 заняты или сервер не стартует)."
+  echo "⚠️Свой lighttpd поднять не получилось (порты 8321–8330 заняты или сервер не стартует)."
   return 1
 }
 
@@ -179,7 +179,7 @@ fi
 
 # Шаг 2: lighttpd нет — установщик сам его ставит и поднимает свой экземпляр
 if [ "$WEB_SERVER" = "none" ] && [ ! -x /opt/sbin/lighttpd ]; then
-  echo "📦 lighttpd не установлен — ставлю сам (opkg install lighttpd), это займёт до минуты..."
+  echo "lighttpd не установлен — ставлю сам (opkg install lighttpd), это займёт до минуты..."
   OPKG_ERR=""
   opkg install lighttpd >/dev/null 2>&1
   if [ ! -x /opt/sbin/lighttpd ]; then
@@ -190,7 +190,7 @@ if [ "$WEB_SERVER" = "none" ] && [ ! -x /opt/sbin/lighttpd ]; then
     echo "✅ lighttpd установлен."
     try_own_lighttpd
   else
-    echo "⚠️ opkg не смог установить lighttpd:"
+    echo "⚠️opkg не смог установить lighttpd:"
     echo "${OPKG_ERR:-нет ответа opkg}" | tail -n 4
   fi
 fi
@@ -237,7 +237,7 @@ try_busybox_httpd() {
   command -v busybox >/dev/null 2>&1 || return 1
   busybox 2>&1 | grep -qw httpd || return 1
   mkdir -p /opt/share/www
-  echo "🚀 Резерв: поднимаю встроенный busybox httpd (порт 8321)..."
+  echo "Резерв: поднимаю встроенный busybox httpd (порт 8321)..."
   for P in $KD_PORTS; do
     port_busy "$P" && continue
     ERR=$(busybox httpd -p "0.0.0.0:$P" -h /opt/share/www 2>&1)
@@ -287,7 +287,7 @@ mkdir -p "$APP_WEB" /opt/etc/keendash /opt/etc/ndm/netfilter.d /tmp/keendash
 # ----------------------------------------------------------------------------
 # 9. Скачиваем файлы — каждый с проверкой
 # ----------------------------------------------------------------------------
-echo "⬇️ Загрузка файлов..."
+echo "Загрузка файлов..."
 get() {
   curl -fLsS --max-time 30 "$REPO_URL/$1" -o "$2" || { echo "❌ Не удалось скачать $1"; exit 1; }
   [ -s "$2" ] || { echo "❌ Файл $1 скачался пустым. Проверь REPO_URL и расположение файлов в репозитории"; exit 1; }
@@ -306,7 +306,7 @@ chmod +x /opt/etc/ndm/netfilter.d/200-keendash.sh
 # ----------------------------------------------------------------------------
 # 11. Останавливаем работающий демон KeenDash (если это переустановка)
 # ----------------------------------------------------------------------------
-echo "🧹 Остановка работающего демона (если запущен)..."
+echo "Остановка работающего демона (если запущен)..."
 kill $(cat /var/run/keendash.pid 2>/dev/null) 2>/dev/null
 pkill -f "200-keendash" 2>/dev/null
 pkill -f "/opt/etc/keendash/sysinfo.sh" 2>/dev/null
@@ -321,7 +321,7 @@ mkdir -p /tmp/keendash
 # ----------------------------------------------------------------------------
 # 13. Симлинки (ярлыки) из папки проекта в оперативную память
 # ----------------------------------------------------------------------------
-echo "🔗 Создание симлинков в $APP_WEB..."
+echo "Создание симлинков в $APP_WEB..."
 rm -f "$APP_WEB/data.json" "$APP_WEB/sysinfo-history.json"
 ln -sf /tmp/keendash/data.json "$APP_WEB/data.json"
 ln -sf /tmp/keendash/sysinfo-history.json "$APP_WEB/sysinfo-history.json"
@@ -329,7 +329,7 @@ ln -sf /tmp/keendash/sysinfo-history.json "$APP_WEB/sysinfo-history.json"
 # ----------------------------------------------------------------------------
 # 14. Запускаем демон
 # ----------------------------------------------------------------------------
-echo "▶️ Запуск демона..."
+echo "Запуск демона..."
 /opt/etc/ndm/netfilter.d/200-keendash.sh
 
 # ----------------------------------------------------------------------------
@@ -339,11 +339,13 @@ DASH_IP=$(ip -4 addr show br0 2>/dev/null | sed -n 's/^[[:space:]]*inet \([0-9.]
 [ -n "$DASH_IP" ] || DASH_IP=$(ip -4 addr show Br0 2>/dev/null | sed -n 's/^[[:space:]]*inet \([0-9.]*\).*/\1/p' | head -n 1)
 [ -n "$DASH_IP" ] || DASH_IP="192.168.1.1"
 
-DASH_URL=""
+DASH_URL=""; OPEN_URL=""
 if [ "$WEB_PORT" = "80" ]; then
   DASH_URL="http://$DASH_IP/keendash/dash.html"
+  OPEN_URL="http://$DASH_IP/keendash/"
 elif [ -n "$WEB_PORT" ]; then
   DASH_URL="http://$DASH_IP:$WEB_PORT/keendash/dash.html"
+  OPEN_URL="http://$DASH_IP:$WEB_PORT/keendash/"
 fi
 
 # Параметры установки сохраняем — uninstall, хук и памятки берут их отсюда
@@ -361,7 +363,7 @@ sleep 1
 
 if [ "$WEB_SERVER" = "none" ]; then
   echo ""
-  echo "⚠️ Установка завершена ЧАСТИЧНО: файлы и демон на месте, но веб-сервера нет —"
+  echo "⚠️Установка завершена ЧАСТИЧНО: файлы и демон на месте, но веб-сервера нет —"
   echo "   страница не откроется. Устрани причину (см. выше) и повтори установку."
   exit 1
 fi
@@ -371,20 +373,20 @@ CHECK=$(curl -fsS -m 5 "http://127.0.0.1:$WEB_PORT/keendash/index.html" 2>/dev/n
 echo ""
 echo "✅ Установка успешно завершена!"
 echo "──────────────────────────────────────────────"
-echo "🌐 Дашборд с графиками:  $DASH_URL"
-echo "📇 Компактная карточка:  ${DASH_URL%dash.html}index.html"
+echo "Открыть:              $OPEN_URL"
+echo "Дашборд с графиками:  $DASH_URL"
 echo "──────────────────────────────────────────────"
-echo "ℹ️ Сервер: $WEB_SERVER · папка: $APP_WEB · порт: $WEB_PORT"
-echo "ℹ️ Адрес сохранён в /opt/etc/keendash/install.env"
+echo "Сервер: $WEB_SERVER · папка: $APP_WEB · порт: $WEB_PORT"
+echo "Адрес сохранён в /opt/etc/keendash/install.env"
 
 if [ "$WEB_SERVER" = "lighttpd-keendash" ] || [ "$WEB_SERVER" = "busybox-httpd" ]; then
-  echo "ℹ️ Веб-сервер KeenDash поднимется сам после перезагрузки роутера (хук 200-keendash.sh)."
+  echo "Веб-сервер KeenDash поднимется сам после перезагрузки роутера (хук 200-keendash.sh)."
 fi
 
 if [ -n "$CHECK" ]; then
   echo "✅ Самопроверка прошла: страница реально отдаётся."
 else
-  echo "⚠️ Самопроверка не прошла: страница пока не отвечает. Диагностика:"
+  echo "⚠️Самопроверка не прошла: страница пока не отвечает. Диагностика:"
   netstat -ltn 2>/dev/null | grep -E "[:.]$WEB_PORT[[:space:]]" || echo "   • порт $WEB_PORT никто не слушает"
   for L in /opt/var/log/lighttpd/error.log /opt/var/log/nginx/error.log; do
     [ -f "$L" ] && { echo "   журнал $L (последние строки):"; tail -n 3 "$L" | sed 's/^/     /'; }
