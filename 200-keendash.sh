@@ -1,10 +1,25 @@
 #!/bin/sh
 # ============================================================================
 # Файл: /opt/etc/ndm/netfilter.d/200-keendash.sh
-# Назначение: фоновый цикл обновления датчиков KeenDash каждые 3 секунды
-# Запускается автоматически при старте NDM (Keenetic)
+# Назначение: автозапуск KeenDash при старте роутера (Keenetic NDM)
+#   1) фоновый цикл обновления датчиков каждые 3 секунды
+#   2) собственный веб-сервер KeenDash (lighttpd / busybox httpd), если
+#      установщик его создал — порт берётся из /opt/etc/keendash/install.env
 # ============================================================================
 
+# --- Веб-сервер KeenDash: если молчит — поднимаем ---------------------------
+if [ -f /opt/etc/keendash/install.env ]; then
+  . /opt/etc/keendash/install.env
+  if [ -n "${WEB_PORT:-}" ] && ! curl -s -o /dev/null -m 2 "http://127.0.0.1:$WEB_PORT/" 2>/dev/null; then
+    if [ "$WEB_SERVER" = "lighttpd-keendash" ] && [ -x /opt/sbin/lighttpd ] && [ -f /opt/etc/keendash/lighttpd.conf ]; then
+      /opt/sbin/lighttpd -f /opt/etc/keendash/lighttpd.conf >/dev/null 2>&1
+    elif [ "$WEB_SERVER" = "busybox-httpd" ] && [ -d "${WEB_ROOT:-/opt/share/www}" ]; then
+      busybox httpd -p "0.0.0.0:$WEB_PORT" -h "$WEB_ROOT" >/dev/null 2>&1
+    fi
+  fi
+fi
+
+# --- Демон сбора данных -----------------------------------------------------
 PIDFILE=/var/run/keendash.pid
 
 # Защита от дублей
