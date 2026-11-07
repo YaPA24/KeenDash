@@ -58,6 +58,10 @@ nav a.on{color:var(--value);border-color:var(--dim);background:#1a1f25}
   padding:14px 0;flex-wrap:wrap}
 .row + .row{border-top:1px solid var(--line)}
 .row .label{padding-top:3px}
+.trow{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:2px 0 16px}
+.trow + .row{border-top:1px solid var(--line)}
+.trow .chip{padding:6px 14px;font-size:13.5px;border-radius:10px}
+.trow .chip b{margin-left:8px;font-size:14.5px}
 .chips{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:7px}
 .mbar{display:block;width:170px;height:4px;margin:8px 0 0 auto;background:#22272d;
   border-radius:3px;overflow:hidden}
@@ -84,16 +88,12 @@ nav a.on{color:var(--value);border-color:var(--dim);background:#1a1f25}
   <div class="card">
     <div class="row"><span class="label">Модель</span><span class="val" id="model">…</span></div>
     <div class="row"><span class="label">ОС</span><span class="val" id="os">…</span></div>
-    <div class="row"><span class="label">CPU / Темп.</span>
-      <span class="val">
-        <span id="cpu">…</span>
-        <span class="chips">
-          <span class="chip">Load<b id="cpuload">–</b></span>
-          <span class="chip">2.4G<b id="t24">–</b></span>
-          <span class="chip">5G<b id="t5">–</b></span>
-          <span class="chip">CPU<b id="tcpu">–</b></span>
-        </span>
-      </span>
+    <div class="row"><span class="label">CPU / Темп.</span><span class="val" id="cpu">…</span></div>
+    <div class="trow">
+      <span class="chip">Load<b id="cpuload">–</b></span>
+      <span class="chip">2.4G<b id="t24">–</b></span>
+      <span class="chip">5G<b id="t5">–</b></span>
+      <span class="chip">CPU<b id="tcpu">–</b></span>
     </div>
     <div class="row"><span class="label">Память</span>
       <span class="val"><span id="ram">…</span><span class="mbar"><i id="rambar"></i></span></span></div>
