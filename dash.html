@@ -29,7 +29,7 @@ body{
   min-height:100%;padding:28px;
 }
 .wrap{width:100%;max-width:1200px;display:flex;flex-direction:column;gap:14px}
-header{display:flex;align-items:center;gap:12px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .logo{width:38px;height:38px;border-radius:10px;background:#1b2026;border:1px solid var(--line);
   display:flex;align-items:center;justify-content:center;flex:none}
 header h1{font-size:17px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
@@ -38,6 +38,18 @@ nav a{color:var(--dim);font-size:12px;text-decoration:none;border:1px solid var(
   border-radius:8px;padding:4px 10px}
 nav a:hover{color:var(--value);border-color:var(--dim)}
 nav a.on{color:var(--value);border-color:var(--dim);background:#1a1f25}
+.brand{margin-left:14px;flex:none;display:block;text-decoration:none}
+.brand rect{fill:#1b2026;stroke:#3fb950;stroke-width:1.5;fill-opacity:0;stroke-opacity:0;
+  transition:fill-opacity .25s,stroke-opacity .25s}
+.brand:hover rect{fill-opacity:1;stroke-opacity:1}
+.brand .w1{fill:var(--value);font-weight:700;letter-spacing:.04em;transition:fill .25s}
+.brand .w2{fill:var(--ok);font-weight:700;letter-spacing:.04em;transition:fill .25s}
+.brand:hover .w1{fill:#fff}
+.brand:hover .w2{fill:#56d364}
+.brand .pulse{stroke:var(--ok);transition:stroke .25s}
+.brand:hover .pulse{stroke:#56d364}
+.brand .gh{fill:var(--dim);transition:fill .25s}
+.brand:hover .gh{fill:var(--value)}
 .clock{margin-right:auto;display:flex;align-items:center;gap:9px;color:var(--dim);font-size:14px;white-space:nowrap}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);
   animation:pulse 2s ease-in-out infinite}
@@ -103,6 +115,18 @@ canvas{width:100%;height:280px;display:block;cursor:crosshair}
     </div>
     <h1>Система</h1>
     <nav><a href="index.html">карточка</a><a href="dash.html" class="on">дашборд</a></nav>
+    <a class="brand" href="https://github.com/YaPA24/KeenDash" target="_blank" rel="noopener"
+       title="Открыть проект на GitHub">
+      <svg width="150" height="38" viewBox="0 0 150 38">
+        <rect x="0.75" y="0.75" width="148.5" height="36.5" rx="10.5"/>
+        <text x="14" y="22" font-size="18" textLength="92" lengthAdjust="spacingAndGlyphs"><tspan class="w1">Keen</tspan><tspan class="w2">Dash</tspan></text>
+        <path class="pulse" d="M14 28h28l4-6 5 10 4-8 3 4h48" fill="none"
+              stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <g class="gh" transform="translate(120,11)">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+        </g>
+      </svg>
+    </a>
   </header>
     <div class="clock"><span class="dot" id="dot"></span><span id="datetime">--.--.---- --:--:--</span></div>
 
