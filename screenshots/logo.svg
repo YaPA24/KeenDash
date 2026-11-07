@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="76" viewBox="0 0 150 38" role="img" aria-label="KeenDash">
+  <rect x="0.75" y="0.75" width="148.5" height="36.5" rx="10.5" fill="#1b2026" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="29" y="22" font-size="18" font-weight="700" letter-spacing=".04em"
+        font-family="'JetBrains Mono','Cascadia Mono',Consolas,Menlo,monospace"
+        textLength="92" lengthAdjust="spacingAndGlyphs"><tspan fill="#e8edf2">Keen</tspan><tspan fill="#3fb950">Dash</tspan></text>
+  <path d="M29 28h28l4-6 5 10 4-8 3 4h48" fill="none" stroke="#3fb950" stroke-width="1.6"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
