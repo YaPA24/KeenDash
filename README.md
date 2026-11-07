@@ -1,4 +1,8 @@
+<div align="center">
+
 ![Logo KeenDash](screenshots/logo.svg)
+<div align="left">
+
 
 Легковесный и красивый системный монитор для роутеров на базе KeeneticOS (в стиле Netdata).
 
