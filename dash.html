@@ -78,6 +78,12 @@ nav a.on{color:var(--value);border-color:var(--dim);background:#1a1f25}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--dim)}
 .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
 .legend b{color:var(--value);font-weight:600;margin-left:4px}
+.legend span{cursor:pointer;user-select:none;-webkit-user-select:none;transition:opacity .15s}
+.legend span:hover{color:var(--value)}
+.legend span.off{opacity:.4;text-decoration:line-through}
+.lggrp{color:var(--label);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+.lggrp:hover{color:var(--value)}
+.lghint{font-size:10px;color:#525b64;letter-spacing:.04em;white-space:nowrap}
 .wbtns{margin-left:auto;display:flex;gap:6px}
 .wbtn{background:#1a1f25;border:1px solid var(--line);border-radius:8px;color:var(--dim);
   font-family:var(--mono);font-size:11.5px;padding:4px 10px;cursor:pointer}
@@ -151,14 +157,19 @@ canvas{width:100%;height:280px;display:block;cursor:crosshair}
     <div class="chead">
       <span class="ct">ДИНАМИКА · % / °C / Мбит/с</span>
       <span class="legend">
-        <span><i style="background:#4cc38a"></i>CPU<b id="lg_cpu">–</b></span>
-        <span><i style="background:#f5a623"></i>RAM<b id="lg_ram">–</b></span>
-        <span><i style="background:#e06c75"></i>CPU°<b id="lg_tcpu">–</b></span>
-        <span><i style="background:#56b6c2"></i>2.4G°<b id="lg_t24">–</b></span>
-        <span><i style="background:#c678dd"></i>5G°<b id="lg_t5">–</b></span>
-        <span><i style="background:#4d9fff"></i>RX<b id="lg_rx">–</b></span>
-        <span><i style="background:#f778ba"></i>TX<b id="lg_tx">–</b></span>
+        <span class="lggrp" data-g="cpu" title="клик — показать/скрыть раздел · двойной клик — только этот раздел">ЦПУ:</span>
+        <span data-k="cpu" title="клик — показать/скрыть · двойной клик — только эта кривая"><i style="background:#4cc38a"></i>CPU<b id="lg_cpu">–</b></span>
+        <span class="lggrp" data-g="ram" title="клик — показать/скрыть раздел · двойной клик — только этот раздел">RAM:</span>
+        <span data-k="ram" title="клик — показать/скрыть · двойной клик — только эта кривая"><i style="background:#f5a623"></i>RAM<b id="lg_ram">–</b></span>
+        <span class="lggrp" data-g="temp" title="клик — показать/скрыть раздел · двойной клик — только этот раздел">Темп.:</span>
+        <span data-k="tcpu" title="клик — показать/скрыть · двойной клик — только эта кривая"><i style="background:#e06c75"></i>CPU°<b id="lg_tcpu">–</b></span>
+        <span data-k="t24" title="клик — показать/скрыть · двойной клик — только эта кривая"><i style="background:#56b6c2"></i>2.4G°<b id="lg_t24">–</b></span>
+        <span data-k="t5" title="клик — показать/скрыть · двойной клик — только эта кривая"><i style="background:#c678dd"></i>5G°<b id="lg_t5">–</b></span>
+        <span class="lggrp" data-g="net" title="клик — показать/скрыть раздел · двойной клик — только этот раздел">Сеть:</span>
+        <span data-k="rx" title="клик — показать/скрыть · двойной клик — только эта кривая"><i style="background:#4d9fff"></i>RX<b id="lg_rx">–</b></span>
+        <span data-k="tx" title="клик — показать/скрыть · двойной клик — только эта кривая"><i style="background:#f778ba"></i>TX<b id="lg_tx">–</b></span>
       </span>
+      <span class="lghint">клик — вкл/выкл · двойной — только выбранное</span>
       <span class="wbtns">
         <button class="wbtn on" data-w="5">5 мин</button>
         <button class="wbtn" data-w="30">30 мин</button>
@@ -192,6 +203,19 @@ let WIN=5, points=[], pushN=0, hoverX=null, serverTime=null, raf=0;
 try{points=JSON.parse(localStorage.getItem(K))||[]}catch(e){points=[]}
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(points))}catch(e){}};
 addEventListener('beforeunload',save);
+
+// Видимость кривых: клик по легенде — вкл/выкл (кривая или целый раздел),
+// двойной клик — оставить только выбранное (ещё раз — вернуть все).
+// Выбор запоминается в localStorage и переживает перезагрузку страницы.
+const VK='sysinfoVisV1';
+let vis={};
+try{vis=JSON.parse(localStorage.getItem(VK))||{}}catch(e){vis={}}
+ALL.forEach(s=>{if(vis[s.k]==null)vis[s.k]=true});
+const saveVis=()=>{try{localStorage.setItem(VK,JSON.stringify(vis))}catch(e){}};
+const lgEls={};
+// Разделы легенды: ЦПУ / RAM / Температура / Сеть
+const GROUPS={cpu:['cpu'],ram:['ram'],temp:['tcpu','t24','t5'],net:['rx','tx']};
+const grpEls={};
 
 // История с роутера: один раз при открытии тянем /tmp/sysinfo-history.json
 // (построчный JSON: одна строка = одна точка). Тогда график одинаков
@@ -254,8 +278,8 @@ function draw(){
 
   // Правая шкала скоростей: авто-масштаб по «красивому» максимуму окна
   let SMAX=0;
-  for(const p of pts){ if(p.rx!=null&&p.rx>SMAX)SMAX=p.rx;
-                       if(p.tx!=null&&p.tx>SMAX)SMAX=p.tx; }
+  for(const p of pts){ if(vis.rx&&p.rx!=null&&p.rx>SMAX)SMAX=p.rx;
+                       if(vis.tx&&p.tx!=null&&p.tx>SMAX)SMAX=p.tx; }
   let SN=0;
   if(SMAX>0){ const base=Math.pow(10,Math.floor(Math.log10(SMAX)));
     for(const m of [1,2,3,5,10]){ if(m*base>=SMAX){SN=m*base;break;} } }
@@ -287,6 +311,7 @@ function draw(){
                           :p2(d.getHours())+':'+p2(d.getMinutes()), X(t), h-B+6);
   }
   for(const s of SERIES){
+    if(!vis[s.k])continue;
     ctx.strokeStyle=s.c; ctx.lineWidth=1.6; ctx.beginPath(); let on=false;
     for(const p of pts){ const v=p[s.k];
       if(v==null){on=false;continue;}
@@ -295,6 +320,7 @@ function draw(){
     ctx.stroke();
   }
   if(SN>0){ for(const s of SPEED){
+    if(!vis[s.k])continue;
     ctx.strokeStyle=s.c; ctx.lineWidth=1.6; ctx.beginPath(); let on=false;
     for(const p of pts){ const v=p[s.k];
       if(v==null){on=false;continue;}
@@ -309,7 +335,8 @@ function draw(){
     const x=X(np.ts);
     ctx.strokeStyle='#3a424b'; ctx.setLineDash([4,4]);
     ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,h-B); ctx.stroke(); ctx.setLineDash([]);
-    const rows=ALL.filter(s=>np[s.k]!=null);
+    const rows=ALL.filter(s=>vis[s.k]&&np[s.k]!=null);
+    if(rows.length){
     for(const s of rows){ctx.fillStyle=s.c;ctx.beginPath();
       const yy=(s.k==='rx'||s.k==='tx')?Ys(np[s.k]):Y(np[s.k]);
       ctx.arc(x,yy,3,0,7);ctx.fill();}
@@ -326,6 +353,7 @@ function draw(){
       const sfx=(s.k==='rx'||s.k==='tx')?' Мбит/с':(s.k==='cpu'||s.k==='ram'?'%':'°C');
       ctx.fillStyle=s.c;ctx.fillText(s.l,bx+8,T+30+i*18);
       ctx.fillStyle='#e8edf2';ctx.fillText(np[s.k]+sfx,bx+70,T+30+i*18);});
+    }
   }
 }
 cv.addEventListener('mousemove',e=>{hoverX=e.clientX-cv.getBoundingClientRect().left;schedule();});
@@ -335,6 +363,34 @@ document.querySelectorAll('.wbtn').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.wbtn').forEach(x=>x.classList.remove('on'));
   b.classList.add('on'); WIN=+b.dataset.w; schedule();
 });
+
+// Кликабельная легенда. Два клика подряд перед dblclick переключают
+// состояние дважды и гасят друг друга — двойной клик применяется чисто.
+document.querySelectorAll('.legend span[data-k]').forEach(el=>{
+  const k=el.dataset.k; lgEls[k]=el;
+  el.onclick=()=>{vis[k]=!vis[k];syncUI();saveVis();schedule();};
+  el.ondblclick=()=>{
+    const isSolo=vis[k]&&ALL.every(s=>s.k===k||!vis[s.k]);
+    ALL.forEach(s=>vis[s.k]=isSolo?true:(s.k===k));
+    syncUI();saveVis();schedule();
+  };
+});
+document.querySelectorAll('.lggrp').forEach(el=>{
+  const ks=GROUPS[el.dataset.g]; grpEls[el.dataset.g]=el;
+  el.onclick=()=>{const any=ks.some(k=>vis[k]);
+    ks.forEach(k=>vis[k]=!any); syncUI();saveVis();schedule();};
+  el.ondblclick=()=>{
+    const isSolo=ks.every(k=>vis[k])&&ALL.every(s=>ks.includes(s.k)||!vis[s.k]);
+    ALL.forEach(s=>vis[s.k]=isSolo?true:ks.includes(s.k));
+    syncUI();saveVis();schedule();
+  };
+});
+const syncUI=()=>{
+  ALL.forEach(s=>{if(lgEls[s.k])lgEls[s.k].classList.toggle('off',!vis[s.k])});
+  for(const g in grpEls){const ks=GROUPS[g];
+    grpEls[g].classList.toggle('off',ks.every(k=>!vis[k]));}
+};
+syncUI();
 
 async function tick(){
   try{
