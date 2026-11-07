@@ -46,15 +46,18 @@ SLOT="$SLOT"
 CPU_STR="$CPU_STR"
 ENV
 fi
+# shellcheck disable=SC1090  # файл пишет сам скрипт при первом тике
 . "$STATIC"
 
 # --- Динамика: Загрузка CPU + память (один вызов awk для скорости) ---
+# shellcheck disable=SC2046  # awk выдаёт присваивания VAR=value для eval
 eval $(awk '
   /^cpu /          { print "STAT_T="$2+$3+$4+$5+$6+$7+$8+$9" STAT_I="$5+$6; next }
   /^MemTotal:/     { print "MEM_T="int($2/1024); next }
   /^MemAvailable:/ { print "MEM_A="int($2/1024); next }
   /^MemFree:/      { print "MEM_F="int($2/1024); next }
 ' /proc/stat /proc/meminfo)
+# shellcheck disable=SC2153  # MEM_F присваивается внутри eval выше
 [ -z "$MEM_A" ] && MEM_A=$MEM_F
 
 CPU_PCT=""
@@ -70,6 +73,30 @@ if [ -n "$MEM_T" ] && [ "$MEM_T" -gt 0 ]; then
   MEM_USED=$((MEM_T - MEM_A))
   MEM_PCT=$((MEM_USED * 100 / MEM_T))
   RAM_STR="${MEM_USED} / ${MEM_T} MB"
+fi
+
+# --- Сеть: скорость WAN-интерфейса (rx/tx, Мбит/с) ---
+# Счётчики — из /proc/net/dev; WAN = интерфейс маршрута по умолчанию
+# (/proc/net/route). Механизм дельты тот же, что у CPU: сравниваем с прошлым
+# тиком, реальный интервал берём из сохранённого времени (защита от спайков
+# при подвисании демона и от счётчиков после ребута).
+NET_PREV=/tmp/keendash/net-stat.prev
+WAN_IF=$(awk '$2=="00000000"{print $1; exit}' /proc/net/route 2>/dev/null)
+RX_MBPS=""; TX_MBPS=""
+if [ -n "$WAN_IF" ]; then
+  # shellcheck disable=SC2046  # awk выдаёт присваивания RXB=... TXB=...
+  eval $(awk -v wan="$WAN_IF" '{i=$1; sub(/:$/,"",i); if(i==wan){print "RXB="$2" TXB="$10; exit}}' /proc/net/dev)
+  if [ -n "${RXB:-}" ] && [ -f "$NET_PREV" ]; then
+    read -r PTS PRX PTX PIF < "$NET_PREV"
+    DT=$(( $(date +%s) - PTS ))
+    if [ "$PIF" = "$WAN_IF" ] && [ "$DT" -ge 1 ] && [ "$DT" -le 60 ] && [ "$RXB" -ge "$PRX" ]; then
+      RX_MBPS=$(awk -v b=$(( (RXB - PRX) * 8 )) -v t="$DT" 'BEGIN{printf "%.1f", b/t/1000000}')
+      TX_MBPS=$(awk -v b=$(( (TXB - PTX) * 8 )) -v t="$DT" 'BEGIN{printf "%.1f", b/t/1000000}')
+    fi
+  fi
+  if [ -n "${RXB:-}" ]; then
+    echo "$(date +%s) ${RXB:-0} ${TXB:-0} $WAN_IF" > "$NET_PREV"
+  fi
 fi
 
 # --- Температуры (умная раскладка зон) ---
@@ -125,7 +152,10 @@ cat <<JSON > /tmp/keendash/data.json.tmp
   "ram": "${RAM_STR}",
   "ram_pct": ${MEM_PCT},
   "opkg": "${OPKG_STR}",
-  "uptime": "${UPTIME_STR}"
+  "uptime": "${UPTIME_STR}",
+  "wan": "${WAN_IF}",
+  "rx": ${RX_MBPS:-null},
+  "tx": ${TX_MBPS:-null}
 }
 JSON
 mv -f /tmp/keendash/data.json.tmp /tmp/keendash/data.json
@@ -138,7 +168,7 @@ HIST=/tmp/keendash/sysinfo-history.json
 [ -f "$HIST" ] || : > "$HIST"
 num() { echo "$1" | tr -dc '0-9'; }
 jn()  { case "$1" in "") echo null ;; *) echo "$1" ;; esac; }
-echo "{\"ts\":$(date +%s),\"cpu\":${CPU_PCT:-null},\"ram\":${MEM_PCT:-0},\"tcpu\":$(jn "$(num "$CPU_C")"),\"t24\":$(jn "$(num "$G24_C")"),\"t5\":$(jn "$(num "$G5_C")")}" >> "$HIST"
+echo "{\"ts\":$(date +%s),\"cpu\":${CPU_PCT:-null},\"ram\":${MEM_PCT:-0},\"tcpu\":$(jn "$(num "$CPU_C")"),\"t24\":$(jn "$(num "$G24_C")"),\"t5\":$(jn "$(num "$G5_C")"),\"rx\":$(jn "$RX_MBPS"),\"tx\":$(jn "$TX_MBPS")}" >> "$HIST"
 if [ "$(wc -l < "$HIST")" -gt 3600 ]; then
   tail -n 3600 "$HIST" > "$HIST.tmp" && mv -f "$HIST.tmp" "$HIST"
 fi

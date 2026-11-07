@@ -307,7 +307,7 @@ chmod +x /opt/etc/ndm/netfilter.d/200-keendash.sh
 # 11. Останавливаем работающий демон KeenDash (если это переустановка)
 # ----------------------------------------------------------------------------
 echo "Остановка работающего демона (если запущен)..."
-kill $(cat /var/run/keendash.pid 2>/dev/null) 2>/dev/null
+kill "$(cat /var/run/keendash.pid 2>/dev/null)" 2>/dev/null
 pkill -f "200-keendash" 2>/dev/null
 pkill -f "/opt/etc/keendash/sysinfo.sh" 2>/dev/null
 sleep 1
@@ -387,7 +387,7 @@ if [ -n "$CHECK" ]; then
   echo "✅ Самопроверка прошла: страница реально отдаётся."
 else
   echo "⚠️Самопроверка не прошла: страница пока не отвечает. Диагностика:"
-  netstat -ltn 2>/dev/null | grep -E "[:.]$WEB_PORT[[:space:]]" || echo "   • порт $WEB_PORT никто не слушает"
+  netstat -ltn 2>/dev/null | grep -E "[:.]${WEB_PORT}[[:space:]]" || echo "   • порт $WEB_PORT никто не слушает"
   for L in /opt/var/log/lighttpd/error.log /opt/var/log/nginx/error.log; do
     [ -f "$L" ] && { echo "   журнал $L (последние строки):"; tail -n 3 "$L" | sed 's/^/     /'; }
   done

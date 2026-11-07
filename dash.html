@@ -149,13 +149,15 @@ canvas{width:100%;height:280px;display:block;cursor:crosshair}
 
   <div class="chartcard">
     <div class="chead">
-      <span class="ct">ДИНАМИКА · % / °C</span>
+      <span class="ct">ДИНАМИКА · % / °C / Мбит/с</span>
       <span class="legend">
         <span><i style="background:#4cc38a"></i>CPU<b id="lg_cpu">–</b></span>
         <span><i style="background:#f5a623"></i>RAM<b id="lg_ram">–</b></span>
         <span><i style="background:#e06c75"></i>CPU°<b id="lg_tcpu">–</b></span>
         <span><i style="background:#56b6c2"></i>2.4G°<b id="lg_t24">–</b></span>
         <span><i style="background:#c678dd"></i>5G°<b id="lg_t5">–</b></span>
+        <span><i style="background:#4d9fff"></i>RX<b id="lg_rx">–</b></span>
+        <span><i style="background:#f778ba"></i>TX<b id="lg_tx">–</b></span>
       </span>
       <span class="wbtns">
         <button class="wbtn on" data-w="5">5 мин</button>
@@ -179,6 +181,13 @@ const SERIES=[
   {k:'t24', c:'#56b6c2', l:'2.4G°'},
   {k:'t5',  c:'#c678dd', l:'5G°'}
 ];
+// Скорости сети (Мбит/с) — отдельная правая шкала, не проценты
+const SPEED=[
+  {k:'rx', c:'#4d9fff', l:'RX'},
+  {k:'tx', c:'#f778ba', l:'TX'}
+];
+const ALL=SERIES.concat(SPEED);
+const fmtSpd=v=>v==null?'–':(v<10?v.toFixed(1):Math.round(v))+' Мбит/с';
 let WIN=5, points=[], pushN=0, hoverX=null, serverTime=null, raf=0;
 try{points=JSON.parse(localStorage.getItem(K))||[]}catch(e){points=[]}
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(points))}catch(e){}};
@@ -196,13 +205,14 @@ async function loadHist(){
     for(const ln of txt.split('\n')){
       if(!ln.trim())continue;
       try{const o=JSON.parse(ln);
-        arr.push({ts:o.ts*1000,cpu:o.cpu,ram:o.ram,tcpu:o.tcpu,t24:o.t24,t5:o.t5});
+        arr.push({ts:o.ts*1000,cpu:o.cpu,ram:o.ram,tcpu:o.tcpu,t24:o.t24,t5:o.t5,
+                  rx:o.rx==null?null:o.rx,tx:o.tx==null?null:o.tx});
       }catch(e){}
     }
     if(arr.length>10){
       // Часы роутера могут отличаться от часов браузера — сдвигаем на разницу
       const off=Date.now()-arr[arr.length-1].ts;
-      points=arr.map(p=>({ts:p.ts+off,cpu:p.cpu,ram:p.ram,tcpu:p.tcpu,t24:p.t24,t5:p.t5}));
+      points=arr.map(p=>({ts:p.ts+off,cpu:p.cpu,ram:p.ram,tcpu:p.tcpu,t24:p.t24,t5:p.t5,rx:p.rx,tx:p.tx}));
       save(); schedule();
     }
   }catch(e){}
@@ -239,13 +249,35 @@ function draw(){
   const dpr=devicePixelRatio||1, w=cv.clientWidth, h=cv.clientHeight;
   if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr;}
   ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
-  const L=34,R=8,T=8,B=22, now=Date.now(), span=WIN*60000, t0=now-span;
+  const L=34,T=8,B=22, now=Date.now(), span=WIN*60000, t0=now-span;
+  const pts=points.filter(p=>p.ts>=t0);
+
+  // Правая шкала скоростей: авто-масштаб по «красивому» максимуму окна
+  let SMAX=0;
+  for(const p of pts){ if(p.rx!=null&&p.rx>SMAX)SMAX=p.rx;
+                       if(p.tx!=null&&p.tx>SMAX)SMAX=p.tx; }
+  let SN=0;
+  if(SMAX>0){ const base=Math.pow(10,Math.floor(Math.log10(SMAX)));
+    for(const m of [1,2,3,5,10]){ if(m*base>=SMAX){SN=m*base;break;} } }
+  const R=SN>0?64:8;
   const X=t=>L+(t-t0)/span*(w-L-R), Y=v=>T+(1-v/100)*(h-T-B);
+  const Ys=v=>T+(1-v/SN)*(h-T-B);
+
   ctx.font='10px monospace'; ctx.textAlign='right'; ctx.textBaseline='middle';
   for(let v=0;v<=100;v+=20){
     ctx.strokeStyle=v?'#1c2126':'#2a3037'; ctx.beginPath();
     ctx.moveTo(L,Y(v)); ctx.lineTo(w-R,Y(v)); ctx.stroke();
     ctx.fillStyle='#525b64'; ctx.fillText(v,L-6,Y(v));
+  }
+  // Подписи Мбит/с справа: короткие засечки у края, без линий поперёк
+  if(SN>0){
+    ctx.textAlign='left';
+    for(let i=0;i<=4;i++){ const v=SN*i/4;
+      ctx.strokeStyle='#242a31'; ctx.beginPath();
+      ctx.moveTo(w-R,Ys(v)); ctx.lineTo(w-R+4,Ys(v)); ctx.stroke();
+      ctx.fillStyle='#3d4650';
+      ctx.fillText((v<10?v.toFixed(1):Math.round(v))+(i===4?' Мбит/с':''), w-R+7, Ys(v));
+    }
   }
   ctx.textAlign='center'; ctx.textBaseline='top';
   for(let i=0;i<=4;i++){
@@ -254,7 +286,6 @@ function draw(){
     ctx.fillText(WIN<=5?p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds())
                           :p2(d.getHours())+':'+p2(d.getMinutes()), X(t), h-B+6);
   }
-  const pts=points.filter(p=>p.ts>=t0);
   for(const s of SERIES){
     ctx.strokeStyle=s.c; ctx.lineWidth=1.6; ctx.beginPath(); let on=false;
     for(const p of pts){ const v=p[s.k];
@@ -263,6 +294,14 @@ function draw(){
     }
     ctx.stroke();
   }
+  if(SN>0){ for(const s of SPEED){
+    ctx.strokeStyle=s.c; ctx.lineWidth=1.6; ctx.beginPath(); let on=false;
+    for(const p of pts){ const v=p[s.k];
+      if(v==null){on=false;continue;}
+      on?ctx.lineTo(X(p.ts),Ys(v)):(ctx.moveTo(X(p.ts),Ys(v)),on=true);
+    }
+    ctx.stroke();
+  } }
   ctx.lineWidth=1;
   if(hoverX!=null&&pts.length>1){
     const ht=t0+(hoverX-L)/(w-L-R)*span;
@@ -270,10 +309,12 @@ function draw(){
     const x=X(np.ts);
     ctx.strokeStyle='#3a424b'; ctx.setLineDash([4,4]);
     ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,h-B); ctx.stroke(); ctx.setLineDash([]);
-    const rows=SERIES.filter(s=>np[s.k]!=null);
+    const rows=ALL.filter(s=>np[s.k]!=null);
     for(const s of rows){ctx.fillStyle=s.c;ctx.beginPath();
-      ctx.arc(x,Y(np[s.k]),3,0,7);ctx.fill();}
-    const bw=132, bh=18*(rows.length+1)+8;
+      const yy=(s.k==='rx'||s.k==='tx')?Ys(np[s.k]):Y(np[s.k]);
+      ctx.arc(x,yy,3,0,7);ctx.fill();}
+    const hasSpd=rows.some(s=>s.k==='rx'||s.k==='tx');
+    const bw=hasSpd?178:132, bh=18*(rows.length+1)+8;
     let bx=x+12; if(bx+bw>w-R)bx=x-12-bw;
     ctx.fillStyle='rgba(20,23,27,.95)'; ctx.strokeStyle='#2a3037';
     ctx.beginPath(); ctx.rect(bx,T+6,bw,bh); ctx.fill(); ctx.stroke();
@@ -281,8 +322,10 @@ function draw(){
     const hd=new Date(np.ts);
     ctx.fillStyle='#9aa4ae';
     ctx.fillText(p2(hd.getHours())+':'+p2(hd.getMinutes())+':'+p2(hd.getSeconds()),bx+8,T+12);
-    rows.forEach((s,i)=>{ctx.fillStyle=s.c;ctx.fillText(s.l,bx+8,T+30+i*18);
-      ctx.fillStyle='#e8edf2';ctx.fillText(np[s.k]+(s.k==='cpu'||s.k==='ram'?'%':'°C'),bx+70,T+30+i*18);});
+    rows.forEach((s,i)=>{
+      const sfx=(s.k==='rx'||s.k==='tx')?' Мбит/с':(s.k==='cpu'||s.k==='ram'?'%':'°C');
+      ctx.fillStyle=s.c;ctx.fillText(s.l,bx+8,T+30+i*18);
+      ctx.fillStyle='#e8edf2';ctx.fillText(np[s.k]+sfx,bx+70,T+30+i*18);});
   }
 }
 cv.addEventListener('mousemove',e=>{hoverX=e.clientX-cv.getBoundingClientRect().left;schedule();});
@@ -302,7 +345,8 @@ async function tick(){
     serverTime=parseDT(d.datetime); $('datetime').textContent=fmtDT(serverTime);
 
     const cpu=pi(d.cpu_pct), ram=pi(d.ram_pct),
-          tcpu=pi(d.cpu_temp), t24=pi(d.g24_temp), t5=pi(d.g5_temp);
+          tcpu=pi(d.cpu_temp), t24=pi(d.g24_temp), t5=pi(d.g5_temp),
+          rx=d.rx==null?null:+d.rx, tx=d.tx==null?null:+d.tx;
 
     if(cpu!=null){gauge('g_cpu',cpu); cpu>=85?$('g_cpu').style.stroke='#f85149'
       :cpu>=60?$('g_cpu').style.stroke='#e3b341':$('g_cpu').style.stroke='#4cc38a';
@@ -314,6 +358,8 @@ async function tick(){
     $('lg_tcpu').textContent=tcpu==null?'–':tcpu+'°';
     $('lg_t24').textContent =t24 ==null?'–':t24 +'°';
     $('lg_t5').textContent  =t5  ==null?'–':t5  +'°';
+    $('lg_rx').textContent=fmtSpd(rx);
+    $('lg_tx').textContent=fmtSpd(tx);
 
     $('i_model').textContent=d.model; $('i_os').textContent=d.os;
     $('i_cpu').textContent=d.cpu;     $('i_up').textContent=d.uptime;
@@ -322,8 +368,8 @@ async function tick(){
     if(d.slot){sw.style.display='flex'; $('i_slot').textContent=d.slot;}
     else sw.style.display='none';
 
-    if(cpu!=null||ram!=null||tcpu!=null){
-      points.push({ts:Date.now(),cpu,ram,tcpu,t24,t5});
+    if(cpu!=null||ram!=null||tcpu!=null||rx!=null||tx!=null){
+      points.push({ts:Date.now(),cpu,ram,tcpu,t24,t5,rx,tx});
       if(points.length>MAX)points.splice(0,points.length-MAX);
       if(++pushN%20==0)save();
       schedule();
