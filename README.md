@@ -6,7 +6,7 @@
 
 Легковесный и красивый системный монитор для роутеров на базе KeeneticOS (в стиле Netdata).
 
-![Preview](https://img.shields.io/badge/Keenetic-Entware-3fb950?style=for-the-badge)
+[![Preview](https://img.shields.io/badge/Keenetic-Entware-3fb950?style=for-the-badge)](https://entware.net/about.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE.txt)
 
 ## ✨ Особенности
