@@ -12,13 +12,48 @@
 <title>Система · Дашборд</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%232ea043' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='14' width='18' height='7' rx='2'/%3E%3Cpath d='M7 17.5h.01M10.5 17.5h.01M17 14V8'/%3E%3Cpath d='M14.5 5.5a3.5 3.5 0 0 1 5 0M12.5 3a6.5 6.5 0 0 1 9 0'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#0b0d10">
+<script>try{const t=localStorage.getItem('sysinfoTheme');
+  document.documentElement.dataset.theme=t==='cudy'||t==='light'?t:''}catch(e){}</script>
 <style>
 :root{
   --bg:#0b0d10; --card:#14171b; --line:#23282e;
   --label:#79828c; --value:#e8edf2; --dim:#9aa4ae;
   --ok:#3fb950; --warn:#e3b341; --crit:#f85149;
+  --panel:#1b2026; --chipbg:#1a1f25; --track:#22272d;
+  --shadow:0 20px 60px rgba(0,0,0,.45);
+  --grid-minor:#1c2126; --grid-zero:#2a3037; --axis:#525b64;
+  --tick:#242a31; --tick-lbl:#3d4650; --hover:#3a424b;
+  --tip-bg:rgba(20,23,27,.95); --tip-border:#2a3037;
   --mono:"JetBrains Mono","Cascadia Mono",Consolas,"Courier New",monospace;
 }
+/* Тема «cudy» — глубокий сине-чёрный вариант (пример: cudy-monitor-pro).
+   Выбирается в меню кнопки «тема» (строка времени); выбор хранится в localStorage. */
+html[data-theme="cudy"]{
+  --bg:#060d1a; --card:#0d1b31; --line:#28405d;
+  --label:#7e94b4; --value:#edf7ff; --dim:#a1b0c9;
+  --ok:#00d58d; --warn:#ffb566; --crit:#f85149;
+  --panel:#111b2d; --chipbg:#14233f; --track:#1e3350;
+  --shadow:0 20px 60px rgba(2,8,20,.55);
+  --grid-minor:#15233c; --grid-zero:#2a4066; --axis:#6e84a4;
+  --tick:#1d3050; --tick-lbl:#556c8e; --hover:#3d5a85;
+  --tip-bg:rgba(9,18,35,.95); --tip-border:#2a4066;
+}
+html[data-theme="cudy"] body{background-image:radial-gradient(1100px 550px at 65% -10%,#1b3460 0%,var(--bg) 65%)}
+html[data-theme="cudy"] .card,html[data-theme="cudy"] .tile,
+html[data-theme="cudy"] .chartcard,html[data-theme="cudy"] .info div{
+  background:linear-gradient(140deg,#142440,var(--card) 60%)}
+/* Тема «light» — светлая; тёмная остаётся дефолтом без изменений. */
+html[data-theme="light"]{
+  --bg:#eef1f5; --card:#ffffff; --line:#d5dbe3;
+  --label:#69737f; --value:#1b222b; --dim:#5c6672;
+  --ok:#1a7f37; --warn:#9a6700; --crit:#cf222e;
+  --panel:#e6eaf0; --chipbg:#f1f4f8; --track:#e1e6ec;
+  --shadow:0 20px 60px rgba(35,45,60,.14);
+  --grid-minor:#e8ecf1; --grid-zero:#d0d7df; --axis:#7a8592;
+  --tick:#dfe5eb; --tick-lbl:#9aa3ad; --hover:#c6ced8;
+  --tip-bg:rgba(255,255,255,.96); --tip-border:#d0d7df;
+}
+html[data-theme="light"] body{background-image:radial-gradient(1100px 550px at 20% -10%,#e4e9ef 0%,var(--bg) 65%)}
 *{margin:0;padding:0;box-sizing:border-box}
 html{height:100%}
 body{
@@ -30,16 +65,48 @@ body{
 }
 .wrap{width:100%;max-width:1200px;display:flex;flex-direction:column;gap:14px}
 header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.logo{width:38px;height:38px;border-radius:10px;background:#1b2026;border:1px solid var(--line);
+.logo{width:38px;height:38px;border-radius:10px;background:var(--panel);border:1px solid var(--line);
   display:flex;align-items:center;justify-content:center;flex:none}
 header h1{font-size:17px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
 nav{display:flex;gap:6px;margin-left:14px}
 nav a{color:var(--dim);font-size:12px;text-decoration:none;border:1px solid var(--line);
   border-radius:8px;padding:4px 10px}
 nav a:hover{color:var(--value);border-color:var(--dim)}
-nav a.on{color:var(--value);border-color:var(--dim);background:#1a1f25}
+nav a.on{color:var(--value);border-color:var(--dim);background:var(--chipbg)}
+.theme{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+  background:transparent;border:1px solid var(--line);border-radius:8px;cursor:pointer;
+  color:var(--dim);font-family:var(--mono);font-size:12px}
+.theme:hover{color:var(--value);border-color:var(--dim)}
+.theme svg{display:block}
+/* Меню темы: светлая / тёмная / cudy + ползунок «гамма» (поворот оттенка) */
+.thwrap{position:relative;display:inline-flex}
+.tmenu{position:absolute;z-index:30;top:calc(100% + 6px);left:0;min-width:212px;
+  max-width:calc(100vw - 20px);background:var(--card);border:1px solid var(--line);
+  border-radius:10px;box-shadow:var(--shadow);padding:6px;display:none;
+  flex-direction:column;gap:2px}
+.tmenu.open{display:flex}
+.tmi{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;
+  border:0;border-radius:7px;padding:7px 9px;color:var(--dim);cursor:pointer;
+  font-family:var(--mono);font-size:12px}
+.tmi:hover{background:var(--chipbg);color:var(--value)}
+.tmi.on{color:var(--value)}
+.tmi.on::after{content:"✓";margin-left:auto;color:var(--ok);font-weight:700}
+.tmi .sw{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);flex:none}
+.tmi .sw.light{background:#eef1f5}
+.tmi .sw.dark{background:#14171b}
+.tmi .sw.cudy{background:#0d1b31}
+.tsep{height:1px;background:var(--line);margin:5px 3px}
+.tgamma{display:flex;align-items:center;gap:8px;padding:4px 9px 6px;
+  color:var(--dim);font-size:11.5px}
+.tgamma input{flex:1;min-width:0;accent-color:var(--ok);cursor:pointer}
+.tgamma b{min-width:34px;text-align:right;color:var(--value);font-weight:600}
+.tgamma .hx{width:20px;height:20px;flex:none;border:1px solid var(--line);border-radius:6px;
+  background:transparent;color:var(--dim);cursor:pointer;font-family:var(--mono);
+  font-size:12px;line-height:1;padding:0}
+.tgamma .hx:hover{color:var(--value);border-color:var(--dim)}
+@media (max-width:560px){.tmenu{left:auto;right:0}}
 .brand{margin-left:14px;flex:none;display:block;text-decoration:none}
-.brand rect{fill:#1b2026;stroke:#3fb950;stroke-width:1.5;fill-opacity:0;stroke-opacity:0;
+.brand rect{fill:var(--panel);stroke:#3fb950;stroke-width:1.5;fill-opacity:0;stroke-opacity:0;
   transition:fill-opacity .25s,stroke-opacity .25s}
 .brand:hover rect{fill-opacity:1;stroke-opacity:1}
 .brand .w1{fill:var(--value);font-weight:700;letter-spacing:.04em;transition:fill .25s}
@@ -50,7 +117,7 @@ nav a.on{color:var(--value);border-color:var(--dim);background:#1a1f25}
 .brand:hover .pulse{stroke:#56d364}
 .brand .gh{fill:var(--dim);transition:fill .25s}
 .brand:hover .gh{fill:var(--value)}
-.clock{margin-right:auto;display:flex;align-items:center;gap:9px;color:var(--dim);font-size:14px;white-space:nowrap}
+.clock{display:flex;align-items:center;gap:9px;color:var(--dim);font-size:14px;white-space:nowrap}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);
   animation:pulse 2s ease-in-out infinite}
 .dot.err{background:var(--crit);box-shadow:0 0 10px var(--crit);animation:none}
@@ -58,7 +125,7 @@ nav a.on{color:var(--value);border-color:var(--dim);background:#1a1f25}
 .label{color:var(--label);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
 .val{font-size:15px;text-align:right;line-height:1.5}
 .val .dim{color:var(--dim)}
-.chip{display:inline-block;background:#1a1f25;border:1px solid var(--line);border-radius:9px;
+.chip{display:inline-block;background:var(--chipbg);border:1px solid var(--line);border-radius:9px;
   padding:3px 9px;font-size:11.5px;color:var(--dim)}
 .chip b{font-weight:600;margin-left:6px;color:var(--value)}
 .chip b.ok{color:var(--ok)} .chip b.warn{color:var(--warn)} .chip b.crit{color:var(--crit)}
@@ -96,7 +163,7 @@ nav a.on{color:var(--value);border-color:var(--dim);background:#1a1f25}
 .lggrp{color:var(--label);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
 .lggrp:hover{color:var(--value)}
 .wbtns{margin-left:auto;display:flex;gap:6px}
-.wbtn{background:#1a1f25;border:1px solid var(--line);border-radius:8px;color:var(--dim);
+.wbtn{background:var(--chipbg);border:1px solid var(--line);border-radius:8px;color:var(--dim);
   font-family:var(--mono);font-size:11.5px;padding:4px 10px;cursor:pointer}
 .wbtn.on{color:var(--value);border-color:var(--dim)}
 canvas{width:100%;height:280px;display:block;cursor:crosshair}
@@ -128,13 +195,29 @@ canvas{width:100%;height:280px;display:block;cursor:crosshair}
       </svg>
     </a>
   </header>
-    <div class="clock"><span class="dot" id="dot"></span><span id="datetime">--.--.---- --:--:--</span></div>
+  <div class="clock"><span class="dot" id="dot"></span><span id="datetime">--.--.---- --:--:--</span>
+    <div class="thwrap">
+      <button class="theme" id="themeBtn" title="Выбор темы" aria-haspopup="menu" aria-expanded="false">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7 1.25a5.75 5.75 0 0 1 0 11.5z" fill="currentColor"/></svg>тема</button>
+      <div class="tmenu" id="tmenu" role="menu">
+        <button class="tmi" data-th="light"><i class="sw light"></i>Светлая</button>
+        <button class="tmi" data-th=""><i class="sw dark"></i>Тёмная</button>
+        <button class="tmi" data-th="cudy"><i class="sw cudy"></i>Cudy</button>
+        <div class="tsep"></div>
+        <div class="tgamma"><span>Гамма</span>
+          <input type="range" id="hueR" min="0" max="360" step="5" value="0" title="Поворот оттенка страницы">
+          <b id="hueV">0°</b>
+          <button class="hx" id="hueX" title="Сбросить гамму">×</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="tiles">
     <div class="tile"><span class="label">CPU Load</span>
       <div class="gwrap">
         <svg viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="52" fill="none" stroke="#22272d" stroke-width="10"/>
+          <circle cx="60" cy="60" r="52" fill="none" style="stroke:var(--track)" stroke-width="10"/>
           <circle id="g_cpu" cx="60" cy="60" r="52" fill="none" stroke="#4cc38a" stroke-width="10"
                   stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"
                   transform="rotate(-90 60 60)"/>
@@ -145,7 +228,7 @@ canvas{width:100%;height:280px;display:block;cursor:crosshair}
     <div class="tile"><span class="label">Память</span>
       <div class="gwrap">
         <svg viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="52" fill="none" stroke="#22272d" stroke-width="10"/>
+          <circle cx="60" cy="60" r="52" fill="none" style="stroke:var(--track)" stroke-width="10"/>
           <circle id="g_ram" cx="60" cy="60" r="52" fill="none" stroke="#f5a623" stroke-width="10"
                   stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"
                   transform="rotate(-90 60 60)"/>
@@ -309,26 +392,27 @@ function draw(){
   const X=t=>L+(t-t0)/span*(w-L-R), Y=v=>T+(1-v/100)*(h-T-B);
   const Ys=v=>T+(1-v/SN)*(h-T-B);
 
+  const cs=getComputedStyle(document.documentElement), pal=k=>cs.getPropertyValue(k).trim();
   ctx.font='10px monospace'; ctx.textAlign='right'; ctx.textBaseline='middle';
   for(let v=0;v<=100;v+=20){
-    ctx.strokeStyle=v?'#1c2126':'#2a3037'; ctx.beginPath();
+    ctx.strokeStyle=v?pal('--grid-minor'):pal('--grid-zero'); ctx.beginPath();
     ctx.moveTo(L,Y(v)); ctx.lineTo(w-R,Y(v)); ctx.stroke();
-    ctx.fillStyle='#525b64'; ctx.fillText(v,L-6,Y(v));
+    ctx.fillStyle=pal('--axis'); ctx.fillText(v,L-6,Y(v));
   }
   // Подписи Мбит/с справа: короткие засечки у края, без линий поперёк
   if(SN>0){
     ctx.textAlign='left';
     for(let i=0;i<=4;i++){ const v=SN*i/4;
-      ctx.strokeStyle='#242a31'; ctx.beginPath();
+      ctx.strokeStyle=pal('--tick'); ctx.beginPath();
       ctx.moveTo(w-R,Ys(v)); ctx.lineTo(w-R+4,Ys(v)); ctx.stroke();
-      ctx.fillStyle='#3d4650';
+      ctx.fillStyle=pal('--tick-lbl');
       ctx.fillText((v<10?v.toFixed(1):Math.round(v))+(i===4?' Мбит/с':''), w-R+7, Ys(v));
     }
   }
   ctx.textAlign='center'; ctx.textBaseline='top';
   for(let i=0;i<=4;i++){
     const t=t0+span*i/4, d=new Date(t);
-    ctx.fillStyle='#525b64';
+    ctx.fillStyle=pal('--axis');
     ctx.fillText(WIN<=5?p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds())
                           :p2(d.getHours())+':'+p2(d.getMinutes()), X(t), h-B+6);
   }
@@ -355,7 +439,7 @@ function draw(){
     const ht=t0+(hoverX-L)/(w-L-R)*span;
     let np=pts[0]; for(const p of pts) if(Math.abs(p.ts-ht)<Math.abs(np.ts-ht)) np=p;
     const x=X(np.ts);
-    ctx.strokeStyle='#3a424b'; ctx.setLineDash([4,4]);
+    ctx.strokeStyle=pal('--hover'); ctx.setLineDash([4,4]);
     ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,h-B); ctx.stroke(); ctx.setLineDash([]);
     const rows=ALL.filter(s=>vis[s.k]&&np[s.k]!=null);
     if(rows.length){
@@ -365,16 +449,16 @@ function draw(){
     const hasSpd=rows.some(s=>s.k==='rx'||s.k==='tx');
     const bw=hasSpd?178:132, bh=18*(rows.length+1)+8;
     let bx=x+12; if(bx+bw>w-R)bx=x-12-bw;
-    ctx.fillStyle='rgba(20,23,27,.95)'; ctx.strokeStyle='#2a3037';
+    ctx.fillStyle=pal('--tip-bg'); ctx.strokeStyle=pal('--tip-border');
     ctx.beginPath(); ctx.rect(bx,T+6,bw,bh); ctx.fill(); ctx.stroke();
     ctx.textAlign='left'; ctx.textBaseline='top';
     const hd=new Date(np.ts);
-    ctx.fillStyle='#9aa4ae';
+    ctx.fillStyle=pal('--dim');
     ctx.fillText(p2(hd.getHours())+':'+p2(hd.getMinutes())+':'+p2(hd.getSeconds()),bx+8,T+12);
     rows.forEach((s,i)=>{
       const sfx=(s.k==='rx'||s.k==='tx')?' Мбит/с':(s.k==='cpu'||s.k==='ram'?'%':'°C');
       ctx.fillStyle=s.c;ctx.fillText(s.l,bx+8,T+30+i*18);
-      ctx.fillStyle='#e8edf2';ctx.fillText(np[s.k]+sfx,bx+70,T+30+i*18);});
+      ctx.fillStyle=pal('--value');ctx.fillText(np[s.k]+sfx,bx+70,T+30+i*18);});
     }
   }
 }
@@ -455,6 +539,40 @@ async function tick(){
   }catch(e){$('dot').classList.add('err');}
 }
 tick(); loadHist(); setInterval(tick,3000); schedule();
+
+// Тема: кнопка в строке времени (за часами) открывает меню — светлая / тёмная /
+// cudy — и ползунок «гамма» (поворот оттенка страницы). Тема и гамма запоминаются
+// в localStorage; тема применяется до отрисовки скриптом в <head>.
+const THEMES={'':'#0b0d10',cudy:'#060d1a',light:'#f5f7fa'};
+const applyTheme=t=>{document.documentElement.dataset.theme=t;
+  const m=document.querySelector('meta[name="theme-color"]');
+  if(m)m.content=THEMES[t]||THEMES[''];
+  schedule();};
+const btn=document.getElementById('themeBtn'),menu=document.getElementById('tmenu'),
+      hueR=document.getElementById('hueR'),hueV=document.getElementById('hueV');
+let hue=0;try{hue=parseInt(localStorage.getItem('sysinfoHue'),10)||0}catch(e){}
+hue=((hue%360)+360)%360;
+const applyHue=h=>{document.body.style.filter=h?'hue-rotate('+h+'deg)':'';};
+const syncMenu=()=>document.querySelectorAll('.tmi').forEach(el=>
+  el.classList.toggle('on',el.dataset.th===(document.documentElement.dataset.theme||'')));
+const closeMenu=()=>{menu.classList.remove('open');
+  btn.setAttribute('aria-expanded','false');};
+btn.onclick=e=>{e.stopPropagation();menu.classList.toggle('open');
+  btn.setAttribute('aria-expanded',menu.classList.contains('open'));};
+document.addEventListener('click',e=>{if(menu.classList.contains('open')
+  &&!menu.contains(e.target))closeMenu();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu();});
+document.querySelectorAll('.tmi').forEach(el=>el.onclick=()=>{
+  const t=el.dataset.th||'';
+  try{localStorage.setItem('sysinfoTheme',t)}catch(e){}
+  applyTheme(t);syncMenu();closeMenu();});
+hueR.oninput=()=>{hue=+hueR.value;hueV.textContent=hue+'°';applyHue(hue);
+  try{localStorage.setItem('sysinfoHue',hue)}catch(e){}};
+document.getElementById('hueX').onclick=()=>{hue=0;hueR.value=0;
+  hueV.textContent='0°';applyHue(0);
+  try{localStorage.setItem('sysinfoHue',0)}catch(e){}};
+applyTheme(document.documentElement.dataset.theme||'');
+applyHue(hue);hueR.value=hue;hueV.textContent=hue+'°';syncMenu();
 </script>
 </body>
 </html>
